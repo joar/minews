@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html xmlns="http://w3.org/1999/xhtml">
+  <head>
+    <link rel="stylesheet" href="/static/css/main.css" />
+  </head>
+  <body>
+    <div class="wrapper">
+      {% block minews_body %}
+        {% block minews_page_heading %}
+          <h1 class="page-heading">The Miner</h1>
+          <p>an aggregator of Minecraft information.</p>
+        {% endblock %}
+        {% block minews_page_content %}
+          <p>Nothing here!</p>
+        {% endblock %}
+      {% endblock %}
+    </div>
+  </body>
+</html>

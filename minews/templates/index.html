@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% block minews_page_content %}
+  <ul class="entries">
+  {% for entry in entries %}
+    <li class="entry source-{{ entry.source }}">
+      <!-- id: {{ entry.guid }} -->
+      {% if entry.thumbnail_url %}
+        <div class="entry-thumbnail-wrapper">
+          <img src="{{ entry.thumbnail_url }}" class="entry_thumbnail" />
+	</div>
+      {% endif %}
+      <div class="entry-content">
+        {% if entry.title %}
+          <h3 class="entry-title"><a target="_blank" href="{{ entry.link }}">{{ entry.title }}</a></h3>
+        {% endif %}
+	{{ entry.content }}
+      </div>
+      <div style="clear: both;"></div>
+      <div class="entry-misc">
+        {% if entry.context %}
+	  <div class="entry-context-wrapper">
+            <a target="_blank" href="{{ entry.context_url }}">{{ entry.context }}</a>
+	  </div>
+        {% endif %}
+        <em>
+          From <a target="_blank" href="{{ entry.source_link }}">{{ entry.source_name }}</a>
+          at <a target="_blank" href="{{ entry.link }}">{{ entry.updated }}</a>
+        </em>
+      </div>
+    </li>
+  {% endfor %}
+  </ul>
+{% endblock %}
