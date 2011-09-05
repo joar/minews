@@ -1,0 +1,14 @@
+li.entry { display: block; padding: 18px; border-top: thin #aaa solid; border-right: thin solid #777; }
+li.entry.type-identica-rss .entry-content { font-size: 16px; }
+li.entry .entry-thumbnail-wrapper { float: left; padding-right: 20px; width: 100px; height: 100px; }
+li.entry .entry-misc { font-size: 14px; }
+li.entry .entry-content,
+li.entry .entry-misc { margin-left: 120px }
+
+ul.entries > li.entry:nth-child(2n) { background: #555; }
+ul.entries { padding: 0; margin-left: -18px;}
+
+li.entry.project-mediagoblin .entry-thumbnail-wrapper { background: url(/static/img/mediagoblin-100.png) no-repeat; }
+li.entry.project-unhosted .entry-thumbnail-wrapper { background: url(/static/img/unhosted-100.png) no-repeat; }
+li.entry.project-owncloud .entry-thumbnail-wrapper { background: url(/static/img/owncloud-100.png) no-repeat; }
+li.entry.project-diaspora .entry-thumbnail-wrapper { background: url(/static/img/diaspora-100.png) no-repeat; }

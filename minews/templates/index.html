@@ -1,17 +1,20 @@
 {% extends 'base.html' %}
 {% block minews_page_content %}
   <ul class="entries">
+  {% set posted = 0 %}
   {% for entry in entries %}
-    <li class="entry source-{{ entry.source }}">
+    {% if posted == 0 %}
+    {% endif %}
+    <li class="entry type-{{ entry.type }} project-{{ entry.project }}">
       <!-- id: {{ entry.guid }} -->
-      {% if entry.thumbnail_url %}
-        <div class="entry-thumbnail-wrapper">
+      <div class="entry-thumbnail-wrapper">
+        {% if entry.thumbnail_url %}
           <img src="{{ entry.thumbnail_url }}" class="entry_thumbnail" />
-	</div>
-      {% endif %}
+        {% endif %}
+      </div>
       <div class="entry-content">
         {% if entry.title %}
-          <h3 class="entry-title"><a target="_blank" href="{{ entry.link }}">{{ entry.title }}</a></h3>
+          <h3 class="entry-title"><a target="_blank" href="{{ entry.permalink }}">{{ entry.title }}</a></h3>
         {% endif %}
 	{{ entry.content }}
       </div>
@@ -19,12 +22,12 @@
       <div class="entry-misc">
         {% if entry.context %}
 	  <div class="entry-context-wrapper">
-            <a target="_blank" href="{{ entry.context_url }}">{{ entry.context }}</a>
+            <a target="_blank" href="{{ entry.context.link }}">{{ entry.context.label }}</a>
 	  </div>
         {% endif %}
         <em>
-          From <a target="_blank" href="{{ entry.source_link }}">{{ entry.source_name }}</a>
-          at <a target="_blank" href="{{ entry.link }}">{{ entry.updated }}</a>
+          From <a target="_blank" href="{{ entry.source.link }}">{{ entry.source.name }}</a>
+          at <a target="_blank" href="{{ entry.permalink }}">{{ entry.posted }}</a>
         </em>
       </div>
     </li>

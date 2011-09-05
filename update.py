@@ -1,4 +1,4 @@
 #!/usr/bin/env python
 import minews
 
-minews.Feeds().update_db()
+minews.Feeds().update()

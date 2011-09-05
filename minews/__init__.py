@@ -5,63 +5,26 @@ import datetime
 import urllib
 import json
 import time
+import mongokit
+from minews.config import FEEDS
 
-from minews.util import parse_tweet
+from minews.util import parse_tweet, links2html
+
+import minews.iterators
+
+import minews.models
 
 logger = logging.getLogger(__name__)
 logging.basicConfig()
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
+
 
 class Feeds:
-    feeds = [
-        ('http://twitter.com/statuses/user_timeline/notch.json', {
-                'source_type': 'twitter',
-                'format': 'json'
-                }),
-        ('http://twitter.com/statuses/user_timeline/jeb_.json', {
-                'source_type': 'twitter',
-                'format': 'json'
-                }),
-        ('http://twitter.com/statuses/user_timeline/carlmanneh.json', {
-                'source_type': 'twitter',
-                'format': 'json'
-                }),
-        ('http://twitter.com/statuses/user_timeline/danfrisk.json', {
-                'source_type': 'twitter',
-                'format': 'json'
-                }),
-        ('http://twitter.com/statuses/user_timeline/kappische.json', {
-                'source_type': 'twitter',
-                'format': 'json'
-                }),
-        ('http://twitter.com/statuses/user_timeline/jahkob.json', {
-                'source_type': 'twitter',
-                'format': 'json'
-                }),
-        ('http://twitter.com/statuses/user_timeline/jnkboy.json', {
-                'source_type': 'twitter',
-                'format': 'json'
-                }),
-        ('http://twitter.com/statuses/user_timeline/mollstam.json', {
-                'source_type': 'twitter',
-                'format': 'json'
-                }),
-        ('http://mcupdate.tumblr.com/rss', {
-                'thumbnail_url': 'http://dummyimage.com/50x50&text=mcupdate',
-                'source_type': 'blog'
-                }),
-        ('http://mojang.com/feed/', {
-                'thumbnail_url': 'http://dummyimage.com/50x50&text=mojang',
-                'source_type': 'blog'
-                }),
-        ('http://notch.tumblr.com/rss', {
-                'thumbnail_url': 'http://dummyimage.com/50x50&text=notch',
-                'source_type': 'blog'
-                })
-        ]
-
     def __init__(self):
-        self.connection = pymongo.Connection('localhost', 27017)
+        self.connection = mongokit.Connection('localhost', 27017)
+
+        minews.models.register_models(self.connection)
+
         self.db = self.connection.minews
 
         self.db.entries.ensure_index([
@@ -70,7 +33,7 @@ class Feeds:
 
     def update_db(self):
         logger.info('== Reading data sources... ==')
-        for feed_url, feed_data in self.feeds:
+        for feed_url, feed_data in FEEDS:
             if feed_data.get('source_type') == 'twitter' and feed_data.get('format') == 'json':
                 r = urllib.urlopen(feed_url)
                 d = json.load(r)
@@ -130,25 +93,29 @@ class Feeds:
         logger.info('== Read all data sources ==')
 
     def get_compiled(self, **kwargs):
-        return self.db.entries.find(
+        return self.db.FeedEntry.find(
             limit=kwargs.get('limit') or 20).sort([
-                ('updated', pymongo.DESCENDING)])
+                ('posted', pymongo.DESCENDING)])
 
-class FeedEntry:
-    updated = False
-    link = False
-    title = False
-    context_url = False
-    context = False
-    guid = False
-    content = False
-    thumbnail_url = False
-    source = False
-    source_name = False
-    source_link = False
-    thumbnail_url = False
+    def update(self):
+        self.ITERATOR_MAP = {
+            'rss': minews.iterators.RSSIterator,
+            'identica-rss': minews.iterators.IdenticaRSSIterator,
+            'diaspora-atom': minews.iterators.DiasporaAtomIterator,
+            'googlegroups-rss': minews.iterators.GoogleGroupsRSSIterator}
 
-    def __init__(self, **kwargs):
-        for key, val in kwargs.items():
-            self.__dict__[key] = val
+        for feed_data in FEEDS:
+            iterator = self.ITERATOR_MAP[
+                feed_data['type']]
+
+            for entry, was_parsed, existed in iterator(self.db, feed_data):
+                if not entry:
+                    logger.error((feed_data, was_parsed, existed))
+                    continue
+
+                logger.debug('{action} {guid}'.format(
+                        guid=entry['guid'],
+                        action='UPDATED' if existed and was_parsed else\
+                            'Did NOTHING to' if existed and not was_parsed else\
+                            'INSERTED data ' if not existed and was_parsed else 'ERROR'))
 

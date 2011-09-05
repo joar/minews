@@ -11,8 +11,17 @@ TEMPLATE_ENV = Environment(
 def get_template(*args):
     return TEMPLATE_ENV.get_template(*args)
 
+def links2html(string):
+#    link_regex = re.compile(r'(?<url>(((ht|f)tp(s?))\://)?((([a-zA-Z0-9_\-]{2,}\.)+[a-zA-Z]{2,})|((?:(?:25[0-5]|2[0-4]\d|[01]\d\d|\d?\d)(?(\.?\d)\.)){4}))(:[a-zA-Z0-9]+)?(/[a-zA-Z0-9\-\._\?\,\'/\\\+&amp;%\$#\=~]*)?)')
+    link_regex = re.compile(r'((https?://|www\.)[^ ,\'">\]\)]+\.[^\. ,\'\">\]\)]{2,6})(\s|$)')
+
+    for match in link_regex.finditer(string):
+        print("\n=====\n" + str(match.groups()) + "\n=====\n")
+
+    return string
+
 def parse_tweet(tweet):
-    hash_regex = re.compile(r'#[0-9a-zA-Z+_]*',re.IGNORECASE) 
+    hash_regex = re.compile(r'#[^ ]*',re.IGNORECASE) 
     user_regex = re.compile(r'@[0-9a-zA-Z+_]*',re.IGNORECASE)
 
     for tt in user_regex.finditer(tweet):

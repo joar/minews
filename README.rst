@@ -1,7 +1,7 @@
-=========================
-``minews`` / "The Miner"
-=========================
-:Author: Joar Wandborg
+======================================
+``minews`` / Libre Projects - News
+======================================
+:Author: Joar Wandborg http://wandborg.se
 :License: AGPLv3
 
-Aggregator of Minecraft-related information
+Libre Projects news aggregator.
