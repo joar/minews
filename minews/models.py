@@ -17,7 +17,7 @@ class FeedEntry(Document):
         'category': unicode,
         'type': unicode,
         'parsed': bool,
-        'raw': str}
+        'raw': unicode}
 
     required_fields = [
         'guid',
