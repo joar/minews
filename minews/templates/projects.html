@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+{% block minews_page_content %}
+  <h2>Projects</h2>
+  <ul class="projects">
+    {% for project in projects %}
+      <li>
+	<div class="project-logo-wrapper">
+	  <img src="{{ project.logo_url }}" alt="{{ project.name }} logo" />
+	</div>
+	<h3><a href="/p/{{ project.handle }}">{{ project.name }}</a></h3>
+	<div class="project-description">
+	  {{ project.description }}
+	</div>
+      </li>
+    {% endfor %}
+  </ul>
+{% endblock %}

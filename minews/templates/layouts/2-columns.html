@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+{% block minews_page_content %}
+  {% block above_columns %}
+  {% endblock %}
+  <div class="column column-first">
+    {% block column_first %}
+      <h2>First column</h2>
+    {% endblock %}
+  </div>
+  <div class="column column-second">
+    {% block column_second %}
+      <h2>Second column</h2>
+    {% endblock %}
+  </div>
+  {% block below_columns %}
+  {% endblock %}
+{% endblock %}

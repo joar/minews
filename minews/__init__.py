@@ -6,13 +6,21 @@ import urllib
 import json
 import time
 import mongokit
-from minews.config import FEEDS
-
-from minews.util import parse_tweet, links2html
+from minews.config import FEEDS, PROJECTS
 
 import minews.iterators
 
 import minews.models
+
+''' For serve() '''
+import tornado.ioloop
+import tornado.web
+import minews
+import minews.util as util
+import pymongo
+
+from minews.util import get_template
+''' end '''
 
 logger = logging.getLogger(__name__)
 logging.basicConfig()
@@ -28,69 +36,11 @@ class Feeds:
         self.db = self.connection.minews
 
         self.db.entries.ensure_index([
-                ('updated', 1),
-                ('id', 1)])
-
-    def update_db(self):
-        logger.info('== Reading data sources... ==')
-        for feed_url, feed_data in FEEDS:
-            if feed_data.get('source_type') == 'twitter' and feed_data.get('format') == 'json':
-                r = urllib.urlopen(feed_url)
-                d = json.load(r)
-                for item in d:
-                    if not self.db.entries.find({
-                            'guid': 'http://twitter.com/%s/statuses/%s' % (item['user']['screen_name'], item['id'])
-                            }).count():
-                        data = dict(
-                            updated=datetime.datetime.strptime(
-                                        item['created_at'],
-                                        '%a %b %d %H:%M:%S +0000 %Y'),  # Thu Aug 06 17:08:06 +0000 2009
-                            link='http://twitter.com/%s/statuses/%s' % (item['user']['screen_name'], item['id']),
-                            guid='http://twitter.com/%s/statuses/%s' % (item['user']['screen_name'], item['id']),
-                            content=parse_tweet(
-                                item['text']),
-                            source='twitter',
-                            source_name='@%s' % item['user']['screen_name'],
-                            source_link='http://twitter.com/%s' % item['user']['screen_name'],
-                            thumbnail_url=item['user']['profile_image_url'])
-
-                        if item['in_reply_to_screen_name']:
-                            data['context'] ='In reply to @%s' % item['in_reply_to_screen_name']
-                            data['context_url'] = 'http://twitter.com/%s/statuses/%s' % (item['in_reply_to_screen_name'], item['in_reply_to_status_id'])
-                        data = FeedEntry(**data)
-                        logger.info('Inserted as %s' % data.__dict__)
-
-                        self.db.entries.insert(
-                            data.__dict__)
-            else:
-                d = feedparser.parse(feed_url)
-                for entry in d.entries:
-                    if not self.db.entries.find({
-                            'guid': entry.id }).count():
-                        print(entry)
-                        data = dict(
-                            updated=datetime.datetime(
-                                *(entry.updated_parsed)[0:6]),
-                            content=entry.summary,
-                            title=entry.title,
-                            context='Read more',
-                            context_url=entry.link,
-                            link=entry.link,
-                            guid=entry.id,
-                            thumbnail_url=feed_data.get('thumbnail_url') or '',
-                            source=feed_data.get('source_type') or '',
-                            source_name=d.feed.title,
-                            source_link=d.feed.link,
-                            )
-                        data = FeedEntry(**data)
-
-                        logger.info('Inserted %s' % data.__dict__)
-
-                        self.db.entries.insert(data.__dict__)
-                    else:
-                        logger.debug('%s already exists in db' % entry['id'])
-
-        logger.info('== Read all data sources ==')
+                ('posted', 1),
+                ('guid', 1),
+                ('type', 1),
+                ('project', 1),
+                ('category', 1)])
 
     def get_compiled(self, **kwargs):
         return self.db.FeedEntry.find(
@@ -98,24 +48,163 @@ class Feeds:
                 ('posted', pymongo.DESCENDING)])
 
     def update(self):
+        stats = self.db.StatisticsEntry()
+        stats.save()
+
         self.ITERATOR_MAP = {
             'rss': minews.iterators.RSSIterator,
-            'identica-rss': minews.iterators.IdenticaRSSIterator,
+            'identica-atom': minews.iterators.IdenticaRSSIterator,
             'diaspora-atom': minews.iterators.DiasporaAtomIterator,
-            'googlegroups-rss': minews.iterators.GoogleGroupsRSSIterator}
+            'gitorious-atom': minews.iterators.RSSIterator,
+            'github-atom': minews.iterators.RSSIterator,
+            'googlegroups-rss': minews.iterators.GoogleGroupsRSSIterator,
+            'twitter-json': minews.iterators.TwitterJSONIterator}
 
-        for feed_data in FEEDS:
-            iterator = self.ITERATOR_MAP[
-                feed_data['type']]
+        for project in self.db.ProjectEntry.find():
+            for feed_data in project['feeds']:
+                feed_data['project'] = project
+                iterator = self.ITERATOR_MAP[
+                    feed_data['type']]
 
-            for entry, was_parsed, existed in iterator(self.db, feed_data):
-                if not entry:
-                    logger.error((feed_data, was_parsed, existed))
-                    continue
+                for entry, was_parsed, existed in iterator(self.db, feed_data):
+                    if not entry['source']['name'] in stats['fetched']:
+                        stats['fetched'].append(entry['source']['name'])
+                        stats.save()
 
-                logger.debug('{action} {guid}'.format(
-                        guid=entry['guid'],
-                        action='UPDATED' if existed and was_parsed else\
-                            'Did NOTHING to' if existed and not was_parsed else\
-                            'INSERTED data ' if not existed and was_parsed else 'ERROR'))
+                    if not entry:
+                        stats['errors'].append((feed_data, was_parsed, existed))
+                        logger.error((feed_data, was_parsed, existed))
+                        continue
 
+                    if was_parsed:
+                        stats['updated'].append(entry['guid'])
+                        stats.save()
+
+                        logger.debug('{action} {guid}'.format(
+                                guid=entry['guid'],
+                                action='UPDATED' if existed and was_parsed else\
+                                    'Did NOTHING to' if existed and not was_parsed else\
+                                    'INSERTED data ' if not existed and was_parsed else 'ERROR'))
+
+        stats['in_progress'] = False
+        stats.save()
+
+    def update_projects(self):
+        for project in PROJECTS:
+            entry = self.db.ProjectEntry.find_one({'handle': project['handle']})
+            logger.debug('==== Found entry: {0}'.format(entry))
+
+            if not entry:
+                entry = self.db.ProjectEntry()
+
+            order = list()
+            for key, val in project.items():
+                order.append(key)
+
+            for key, val in project.items():
+                logger.debug(u'{0} => {1}'.format(key, val))
+                logger.debug(order)
+                entry[key] = val
+
+            entry.save()
+
+def serve():
+    feeds = Feeds()
+
+    class FeedsRequestHandler(tornado.web.RequestHandler):
+        def initialize(self, feeds):
+            self.feeds = feeds
+            self.context = dict(
+                reverse_url=self.reverse_url)
+
+        def get(self):
+            self.write('Not implemented')
+
+        def render(self, template_name, data = {}):
+            data['context'] = self.context
+
+            template = get_template(template_name)
+            self.write(
+                template.render(data))
+
+
+    class MainHandler(FeedsRequestHandler):
+        def get(self):
+            self.render('index.html', {
+                    'entries': util.generate_entries(
+                        query=self.feeds.db.FeedEntry.find(
+                            {'audience': 'general'},
+                            limit=100).sort([
+                                ('posted', pymongo.DESCENDING)]),
+                        db=self.feeds.db)})
+
+
+    class ProjectHandler(FeedsRequestHandler):
+        def get(self, project):
+            project = self.feeds.db.ProjectEntry.find_one({
+                    'handle': project})
+
+            self.render('project.html', {
+                    'entries_general': util.generate_entries(
+                        query=self.feeds.db.FeedEntry.find({
+                                'project': project['_id'],
+                                'audience': 'general'}, limit=10).sort([
+                                ('posted', pymongo.DESCENDING)]),
+                        project=project),
+                    'entries_advanced': util.generate_entries(
+                        query=self.feeds.db.FeedEntry.find({
+                                'project': project['_id'],
+                                'audience': 'advanced'}, limit=10).sort([
+                                ('posted', pymongo.DESCENDING)]),
+                        project=project),
+                    'project': project,
+                    'no_logo': True,
+                    'request': self.request})
+
+
+    class ProjectsPageHandler(FeedsRequestHandler):
+        def get(self):
+            self.render('projects.html', dict(
+                    projects=self.feeds.db.ProjectEntry.find()))
+
+
+    class StatsHandler(tornado.web.RequestHandler):
+        def initialize(self, feeds):
+            self.feeds = feeds
+
+            def get(self):
+                cursor = feeds.db.StatisticsEntry.find().sort('created', pymongo.DESCENDING)
+
+                self.set_header('Content-Type', 'text/plain; charset=UTF-8')
+
+                for stats in cursor:
+                    self.write(u'{time}'.format(
+                            time=stats['created']))
+
+                    if stats['in_progress']:
+                        self.write(u' - In progress\n')
+                    else:
+                        self.write(u'\n')
+
+                    if stats['fetched'] or stats['updated'] or stats['errors']:
+                        self.write(u'\tUPDATED:\n\t\t{updated}\n'.format(
+                                updated=u'\n\t\t'.join(stats['updated']) if len(stats['updated']) else 'None'))
+                        
+                        self.write(u'\tFETCHED:\n\t\t{fetched}\n'.format(
+                                fetched='\n\t\t'.join(
+                                    stats['fetched']) if stats['fetched'] else 'None'))
+                    else:
+                        self.write('\tNOTHING\n')
+
+    application = tornado.web.Application([
+            (r'/', MainHandler, dict(feeds=feeds)),
+            (r'/p/([a-z]*)', ProjectHandler, dict(feeds=feeds)),
+            (r'/static/(.*)', tornado.web.StaticFileHandler, {'path': './minews/static/'}),
+            (r'/stats', StatsHandler, dict(feeds=feeds)),
+            (r'/projects', ProjectsPageHandler, dict(feeds=feeds))
+            ],
+                                          debug=True
+                                          )
+    
+    application.listen(8080)
+    tornado.ioloop.IOLoop.instance().start()

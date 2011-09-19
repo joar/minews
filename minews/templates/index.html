@@ -1,36 +1,4 @@
 {% extends 'base.html' %}
 {% block minews_page_content %}
-  <ul class="entries">
-  {% set posted = 0 %}
-  {% for entry in entries %}
-    {% if posted == 0 %}
-    {% endif %}
-    <li class="entry type-{{ entry.type }} project-{{ entry.project }}">
-      <!-- id: {{ entry.guid }} -->
-      <div class="entry-thumbnail-wrapper">
-        {% if entry.thumbnail_url %}
-          <img src="{{ entry.thumbnail_url }}" class="entry_thumbnail" />
-        {% endif %}
-      </div>
-      <div class="entry-content">
-        {% if entry.title %}
-          <h3 class="entry-title"><a target="_blank" href="{{ entry.permalink }}">{{ entry.title }}</a></h3>
-        {% endif %}
-	{{ entry.content }}
-      </div>
-      <div style="clear: both;"></div>
-      <div class="entry-misc">
-        {% if entry.context %}
-	  <div class="entry-context-wrapper">
-            <a target="_blank" href="{{ entry.context.link }}">{{ entry.context.label }}</a>
-	  </div>
-        {% endif %}
-        <em>
-          From <a target="_blank" href="{{ entry.source.link }}">{{ entry.source.name }}</a>
-          at <a target="_blank" href="{{ entry.permalink }}">{{ entry.posted }}</a>
-        </em>
-      </div>
-    </li>
-  {% endfor %}
-  </ul>
+{% include 'util/entries_list.html' %}
 {% endblock %}

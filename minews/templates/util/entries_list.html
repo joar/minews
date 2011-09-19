@@ -1,0 +1,10 @@
+  <ul class="entries">
+  {% set stored_date = 0 %}
+  {% for entry in entries %}
+    {% if not entry.posted.date() == stored_date %}
+      <li class="date-delimiter"><h3>{{ entry.posted.date() }}</h3></li>
+      {% set stored_date = entry.posted.date() %}
+    {% endif %}
+    {% include 'util/entry.html' %}
+  {% endfor %}
+  </ul>
