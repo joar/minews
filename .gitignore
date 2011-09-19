@@ -1,1 +1,9 @@
 *.pyc
+*.pyo
+.installed.cfg
+minews.egg-info
+bin/
+eggs/
+develop-eggs/
+parts/
+dist/
