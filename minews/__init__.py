@@ -210,4 +210,4 @@ def serve():
     tornado.ioloop.IOLoop.instance().start()
 
 def update():
-    Feeds().update
+    Feeds().update()
