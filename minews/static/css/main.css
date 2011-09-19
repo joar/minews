@@ -1,25 +1,22 @@
-li.entry, li.date-delimiter { display: block; }
-li.entry { padding: 18px; border-top: thin solid rgba(0, 0, 0, 0.1); }
-li.entry.type-identica-rss .entry-content { font-size: 16px; }
-/* Removed thumbnails
-li.entry .entry-thumbnail-wrapper { float: left; padding-right: 20px; width: 100px; height: 100px; }
-*/
-li.entry .entry-misc { font-size: 14px; }
-/* Removed margins
-li.entry .entry-content,
-li.entry .entry-misc { margin-left: 120px }
-*/
-
-ul.entries { margin: 0px; padding: 0px }
-ul.entries img { max-width:200px; max-height:200px; vertical-align:middle; }
-ul.entries div.project-logo-wrapper { float: right; }
-
-/*
-li.entry.project-mediagoblin .entry-thumbnail-wrapper { background: url(/static/img/mediagoblin-100.png) no-repeat; }
-li.entry.project-unhosted .entry-thumbnail-wrapper { background: url(/static/img/unhosted-100.png) no-repeat; }
-li.entry.project-owncloud .entry-thumbnail-wrapper { background: url(/static/img/owncloud-100.png) no-repeat; }
-li.entry.project-diaspora .entry-thumbnail-wrapper { background: url(/static/img/diaspora-100.png) no-repeat; }
-*/
-
 div.column-first { width: 50%; float: left; }
 div.column-second { width: 50%; float: right; }
+
+ul.entries { margin: 0px; padding: 0px }
+
+ul.entries img { max-width:200px; max-height:200px; vertical-align:middle; }
+
+li.entry,
+li.date-delimiter { display: block; }
+li.entry { padding: 18px; border-top: thin solid rgba(0, 0, 0, 0.1); }
+
+li.entry.type-identica-rss .entry-content { font-size: 16px; }
+
+li.entry .entry-misc { font-size: 14px; }
+
+ul.projects { margin: 0px; padding: 0px; }
+
+li.project { padding: 18px; border-top: thin solid rgba(0, 0, 0, 0.1); }
+
+
+ul.entries div.project-info,
+ul.projects div.project-logo-wrapper { float: right; }

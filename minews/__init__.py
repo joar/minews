@@ -172,29 +172,29 @@ def serve():
         def initialize(self, feeds):
             self.feeds = feeds
 
-            def get(self):
-                cursor = feeds.db.StatisticsEntry.find().sort('created', pymongo.DESCENDING)
+        def get(self):
+            cursor = feeds.db.StatisticsEntry.find().sort('created', pymongo.DESCENDING)
 
-                self.set_header('Content-Type', 'text/plain; charset=UTF-8')
+            self.set_header('Content-Type', 'text/plain; charset=UTF-8')
 
-                for stats in cursor:
-                    self.write(u'{time}'.format(
-                            time=stats['created']))
+            for stats in cursor:
+                self.write(u'{time}'.format(
+                        time=stats['created']))
 
-                    if stats['in_progress']:
-                        self.write(u' - In progress\n')
-                    else:
-                        self.write(u'\n')
+                if stats['in_progress']:
+                    self.write(u' - In progress\n')
+                else:
+                    self.write(u'\n')
 
-                    if stats['fetched'] or stats['updated'] or stats['errors']:
-                        self.write(u'\tUPDATED:\n\t\t{updated}\n'.format(
-                                updated=u'\n\t\t'.join(stats['updated']) if len(stats['updated']) else 'None'))
-                        
-                        self.write(u'\tFETCHED:\n\t\t{fetched}\n'.format(
-                                fetched='\n\t\t'.join(
-                                    stats['fetched']) if stats['fetched'] else 'None'))
-                    else:
-                        self.write('\tNOTHING\n')
+                if stats['fetched'] or stats['updated'] or stats['errors']:
+                    self.write(u'\tUPDATED:\n\t\t{updated}\n'.format(
+                            updated=u'\n\t\t'.join(stats['updated']) if len(stats['updated']) else 'None'))
+
+                    self.write(u'\tFETCHED:\n\t\t{fetched}\n'.format(
+                            fetched='\n\t\t'.join(
+                                stats['fetched']) if stats['fetched'] else 'None'))
+                else:
+                    self.write('\tNOTHING\n')
 
     application = tornado.web.Application([
             (r'/', MainHandler, dict(feeds=feeds)),
@@ -208,3 +208,6 @@ def serve():
     
     application.listen(8080)
     tornado.ioloop.IOLoop.instance().start()
+
+def update():
+    Feeds().update

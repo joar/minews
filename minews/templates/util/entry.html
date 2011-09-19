@@ -2,11 +2,18 @@
     {% endif %}
     <li class="entry type-{{ entry.type }} project-{{ entry.project_data.handle }}">
       <!-- id: {{ entry.guid }} -->
+      <div class="project-info">
       {% if entry.project_data.logo_url and not no_logo %}
         <div class="project-logo-wrapper">
-          <img src="{{ entry.project_data.logo_url }}" class="entry_thumbnail" />
+	  <a href="/p/{{ entry.project_data.handle }}">
+            <img src="{{ entry.project_data.logo_url }}" class="entry_thumbnail" />
+	  </a>
         </div>
+	<a href="/p/{{ entry.project_data.handle }}">
+	  {{ entry.project_data.name }}
+	</a>
       {% endif %}
+      </div>
       <div class="entry-content">
         {% if entry.title %}
           <h3 class="entry-title"><a target="_blank" href="{{ entry.permalink }}">{{ entry.title }}</a></h3>
